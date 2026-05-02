@@ -103,7 +103,22 @@ app = Flask(__name__)
 CORS(app)
 
 # Load model once (important 🚀)
-model = load_model("model.h5")
+# model = load_model("model.h5")
+model = None
+
+def get_model():
+    global model
+    if model is None:
+        from tensorflow.keras.models import load_model
+        import os
+
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        model_path = os.path.join(BASE_DIR, "model.h5")
+
+        model = load_model(model_path)
+        print("✅ Model loaded")
+
+    return model
 
 # Emotion labels (change according to your training)
 emotion_labels = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
@@ -131,6 +146,8 @@ def predict():
         img = np.reshape(img, (1, 48, 48, 1))
 
         # Predict
+        # prediction = model.predict(img)
+        model = get_model()
         prediction = model.predict(img)
         emotion = emotion_labels[np.argmax(prediction)]
 
