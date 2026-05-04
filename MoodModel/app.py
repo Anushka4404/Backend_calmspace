@@ -186,7 +186,8 @@ def get_model():
         print("📁 Model path:", model_path)
         print("📁 Exists:", os.path.exists(model_path))
 
-        model = load_model(model_path)
+        # model = load_model(model_path)
+        model = load_model(model_path, compile=False, safe_mode=False)
         print("✅ Model loaded")
 
     return model
