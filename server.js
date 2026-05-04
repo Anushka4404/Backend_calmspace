@@ -35,10 +35,13 @@ app.use(express.json());
 const corsOptions = {
   origin: function(origin, callback) {
     // Read allowed origins from .env (comma-separated), fallback to localhost
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',')
-      : ['http://localhost:3000'];
-
+    // const allowedOrigins = process.env.ALLOWED_ORIGINS
+    //   ? process.env.ALLOWED_ORIGINS.split(',')
+    //   : ['http://localhost:3000'];
+     const allowedOrigins = [
+  "http://localhost:3000",
+  "https://frontend-calmspace.onrender.com"
+];
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
