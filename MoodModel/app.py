@@ -93,104 +93,17 @@
 #     print("🚀 ML Server running on 5000")
 #     app.run(host='0.0.0.0', port=5000, debug=True)
 
-
-# from flask import Flask, request, jsonify
-# from flask_cors import CORS
-# import numpy as np
-# import cv2
-# from tensorflow.keras.models import load_model
-
-# app = Flask(__name__)
-# CORS(app)
-
-# # Load model once (important 🚀)
-# # model = load_model("model.h5")
-# model = None
-
-# def get_model():
-#     global model
-#     if model is None:
-#         from tensorflow.keras.models import load_model
-#         import os
-
-#         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-#         model_path = os.path.join(BASE_DIR, "model.h5")
-
-#         model = load_model(model_path)
-#         print("✅ Model loaded")
-
-#     return model
-
-# # Emotion labels (change according to your training)
-# emotion_labels = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
-
-# @app.route("/")
-# def home():
-#     return "ML API is running 🚀"
-
-# @app.route("/predict_emotion", methods=["POST"])
-
-# def predict():
-#     try:
-#         file = request.files.get("image")
-
-#         if file is None:
-#             return jsonify({"error": "No image uploaded"}), 400
-
-#         # Convert image
-#         img = np.frombuffer(file.read(), np.uint8)
-#         img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-
-#         # Preprocess (VERY IMPORTANT ⚠️)
-#         img = cv2.resize(img, (48, 48))
-#         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#         img = img / 255.0
-#         img = np.reshape(img, (1, 48, 48, 1))
-
-#         # Predict
-#         # prediction = model.predict(img)
-#         model = get_model()
-#         prediction = model.predict(img)
-#         emotion = emotion_labels[np.argmax(prediction)]
-
-#         return jsonify({
-#             "success": True,
-#             "emotion": emotion
-#         })
-
-#     except Exception as e:
-#         return jsonify({
-#             "success": False,
-#             "error": str(e)
-#         }), 500
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import numpy as np
 import cv2
 from tensorflow.keras.models import load_model
-import os
 
 app = Flask(__name__)
 CORS(app)
-print("🔥🔥 NEW VERSION DEPLOYED 🔥🔥")
+
 # Load model once (important 🚀)
-model = None
-
-def get_model():
-    global model
-    if model is None:
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        model_path = os.path.join(BASE_DIR, "model.h5")
-
-        print("📁 Model path:", model_path)
-        print("📁 Exists:", os.path.exists(model_path))
-
-        # model = load_model(model_path)
-        model = load_model(model_path, compile=False, safe_mode=False)
-        print("✅ Model loaded")
-
-    return model
+model = load_model("model.h5")
 
 # Emotion labels (change according to your training)
 emotion_labels = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
@@ -199,54 +112,35 @@ emotion_labels = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutr
 def home():
     return "ML API is running 🚀"
 
-# ✅ FIXED ROUTE (IMPORTANT)
-@app.route("/test")
-def test():
-    return "Flask working 🚀"
-
-
 @app.route("/predict_emotion", methods=["POST"])
 def predict():
     try:
-        print("🔥 Request received")
-
         file = request.files.get("image")
+
         if file is None:
             return jsonify({"error": "No image uploaded"}), 400
 
+        # Convert image
         img = np.frombuffer(file.read(), np.uint8)
         img = cv2.imdecode(img, cv2.IMREAD_COLOR)
 
-        if img is None:
-            return jsonify({"error": "Invalid image"}), 400
-
+        # Preprocess (VERY IMPORTANT ⚠️)
         img = cv2.resize(img, (48, 48))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         img = img / 255.0
         img = np.reshape(img, (1, 48, 48, 1))
 
-        print("🔥 Loading model...")
-        model = get_model()
-
-        print("🔥 Predicting...")
+        # Predict
         prediction = model.predict(img)
-
-        mood_index = int(np.argmax(prediction))
-        emotion = emotion_labels[mood_index]
+        emotion = emotion_labels[np.argmax(prediction)]
 
         return jsonify({
-            "mood": mood_index,
-            "moodLabel": emotion
+            "success": True,
+            "emotion": emotion
         })
 
     except Exception as e:
-        import traceback
-        print("🔥 ERROR:", str(e))
-        print(traceback.format_exc())
-
-        return jsonify({"error": str(e)}), 500
-
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
