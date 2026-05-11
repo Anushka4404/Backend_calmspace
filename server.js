@@ -124,6 +124,25 @@ app.get('/api/config', (req, res) => {
   });
 });
 
+// Root route
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    message: 'CalmSpace Backend API is running',
+    endpoints: {
+      health: '/health',
+      config: '/api/config',
+      auth: '/api/auth',
+      mood: '/api/mood',
+      profile: '/api/user/profile',
+      settings: '/api/settings',
+      ai: '/api/ai',
+      mentalHealth: '/api/mental-health',
+      appointments: '/api/appointments'
+    }
+  });
+});
+
 // Health check route
 app.get('/health', (req, res) => {
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
