@@ -220,21 +220,22 @@ const emailMentalHealthReport = async (req, res) => {
       subject: 'Your CalmSpace Mental Health Report',
       html: emailContent
     });
-    
+
+    console.log("EMAIL RESULT:", emailResult);
     if (emailResult.success) {
       res.status(200).json({
         success: true,
         message: 'Report sent to your email successfully'
       });
     } else {
-      throw new Error('Failed to send email');
+      throw new Error(emailResult.error || 'Failed to send email');
     }
     
   } catch (error) {
-    console.error('Error emailing report:', error);
+    console.error('EMAIL REPORT ERROR:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to send email'
+      message: error.message
     });
   }
 };

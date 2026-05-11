@@ -10,7 +10,7 @@ CORS(app)
 
 # LOAD MODEL (no training!)
 # model = load_model('model_file.h5')
-detector = FER(mtcnn=True)
+detector = FER(mtcnn=False)
 
 faceDetect = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
@@ -31,31 +31,36 @@ def predict_emotion():
             return jsonify({'error': 'No image file'}), 400
 
         file = request.files['image']
+        print('Received image file:', file.filename, file.content_type)
         npimg = np.frombuffer(file.read(), np.uint8)
         frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
         if frame is None:
-            return jsonify({'error': 'Invalid image'}), 400
+            return jsonify({'error': 'Invalid image or unsupported format'}), 400
 
-        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # faces = faceDetect.detectMultiScale(gray, 1.3, 3)
+        if frame.shape[0] == 0 or frame.shape[1] == 0:
+            return jsonify({'error': 'Empty image'}), 400
 
-        # if len(faces) == 0:
-        #     return jsonify({'error': 'No face detected'}), 400
-
-        # x, y, w, h = faces[0]
-        # face = gray[y:y+h, x:x+w]
-        # face = cv2.resize(face, (48,48))
-        # face = face / 255.0
-        # face = face.reshape(1,48,48,1)
-
-        # prediction = model.predict(face)
-        # label = int(np.argmax(prediction))
-
+        print("Frame shape:", frame.shape)
         result = detector.detect_emotions(frame)
+        print("Initial FER detection result:", result)
 
         if not result:
-            return jsonify({'error': 'No face detected'}), 400
+            # Fallback: try Haar cascade if FER missed the face
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = faceDetect.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=1, minSize=(30, 30))  # More sensitive detection
+            print("Haar cascade faces:", faces)
+
+            if faces is None or len(faces) == 0:
+                return jsonify({'error': 'No face detected'}), 400
+
+            x, y, w, h = faces[0]
+            face_img = frame[y:y+h, x:x+w]
+            result = detector.detect_emotions(face_img)
+            print("FER result on cropped face:", result)
+
+            if not result:
+                return jsonify({'error': 'No face detected'}), 400
 
         emotions = result[0]["emotions"]
         # 🔥 PUT YOUR LOGIC HERE
@@ -68,7 +73,8 @@ def predict_emotion():
         else:
             emotion = max(emotions, key=emotions.get)
         
-        confidence = emotions[emotion]
+        # confidence = emotions[emotion]
+        confidence = emotions.get(emotion, 0)
         # map emotion → number (IMPORTANT)
         labels_map = {
             "angry": 0,

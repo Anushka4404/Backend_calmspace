@@ -31,31 +31,34 @@ const app = express();
 app.use(express.json());
 
 
-// Configure CORS to allow requests from multiple frontend origins
-const corsOptions = {
-  origin: function(origin, callback) {
-    // Read allowed origins from .env (comma-separated), fallback to localhost
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',')
-      : ['http://localhost:3000'];
+// Configure CORS
+const allowedOrigins = [
+  'http://127.0.0.1:5500',
+  'http://localhost:5500',
+  'http://localhost:3000',
+  'https://frontend-calmspace.onrender.com'
+];
 
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin || allowedOrigins.includes(origin)) {
+app.use(cors({
+  origin: function(origin, callback) {
+
+    // Allow requests with no origin
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.log('Blocked by CORS - Origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+      console.log("Blocked by CORS:", origin);
+      callback(new Error("Not allowed by CORS"));
     }
   },
+
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-};
-
-// Use the CORS middleware with options
-app.use(cors(corsOptions));
+  credentials: true
+}));
 
 // MongoDB connection with improved error handling
 const connectDB = async () => {

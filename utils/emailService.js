@@ -46,6 +46,8 @@ async function sendEmail(options) {
           pass: process.env.EMAIL_PASSWORD
         }
       });
+      await transporter.verify();
+      console.log("SMTP server ready");
     }
     
     // Set up email options
@@ -69,7 +71,13 @@ async function sendEmail(options) {
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('Email sending failed:', error);
-    return { success: false, error };
+    // return { success: false, error: error.message };
+    console.error("NODEMAILER ERROR:", error);
+
+  return {
+    success: false,
+    error: error.message
+  };
   }
 }
 
