@@ -7,8 +7,30 @@ from fer import FER
 
 app = Flask(__name__)
 
-# CORS FIX
-CORS(app, resources={r"/*": {"origins": "*"}})
+# CORS FIX - Allow specific origins for production
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://frontend-calmspace.onrender.com",
+            "http://localhost:3000",
+            "http://localhost:5000",
+            "http://localhost:5001",
+            "*"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Access-Control-Allow-Origin"],
+        "supports_credentials": True
+    }
+})
+
+def add_cors_headers(response):
+    """Add CORS headers to response for Render compatibility"""
+    response.headers['Access-Control-Allow-Origin'] = 'https://frontend-calmspace.onrender.com'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response
 
 # LOAD MODEL (no training!)
 # model = load_model('model_file.h5')
@@ -37,16 +59,20 @@ labels_dict = {
 
 @app.route('/')
 def home():
-    return "ML Service Running!"
+    response = jsonify({"message": "ML Service Running!"})
+    return add_cors_headers(response)
 
 
-@app.route('/predict_emotion', methods=['POST'])
-def predict_emotion():
-
-    try:
+@app.route('/predict_emotion', methods=['OPTIONS'])
+def predict_emotion_options():
+    """Handle preflight OPTIONS request for CORS"""
+    response = jsonify({})
+    return add_cors_headers(response)
 
         if 'image' not in request.files:
-            return jsonify({'error': 'No image file'}), 400
+            response = jsonify({'error': 'No image file'})
+            response.status_code = 400
+            return add_cors_headers(response)
 
         file = request.files['image']
 
@@ -57,10 +83,14 @@ def predict_emotion():
         frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
         if frame is None:
-            return jsonify({'error': 'Invalid image'}), 400
+            response = jsonify({'error': 'Invalid image'})
+            response.status_code = 400
+            return add_cors_headers(response)
 
         if frame.shape[0] == 0 or frame.shape[1] == 0:
-            return jsonify({'error': 'Empty image'}), 400
+            response = jsonify({'error': 'Empty image'})
+            response.status_code = 400
+            return add_cors_headers(response)
 
         print("Frame shape:", frame.shape)
 
@@ -83,7 +113,9 @@ def predict_emotion():
             print("Haar cascade faces:", faces)
 
             if len(faces) == 0:
-                return jsonify({'error': 'No face detected'}), 400
+                response = jsonify({'error': 'No face detected'})
+                response.status_code = 400
+                return add_cors_headers(response)
 
             x, y, w, h = faces[0]
 
@@ -94,7 +126,9 @@ def predict_emotion():
             print("FER cropped result:", result)
 
             if not result:
-                return jsonify({'error': 'Emotion not detected'}), 400
+                response = jsonify({'error': 'Emotion not detected'})
+                response.status_code = 400
+                return add_cors_headers(response)
 
         emotions = result[0]["emotions"]
 
@@ -123,19 +157,21 @@ def predict_emotion():
             "surprise": 6
         }
 
-        return jsonify({
+        return add_cors_headers(jsonify({
             "mood": labels_map[emotion],
             "moodLabel": emotion.capitalize(),
             "confidence": round(confidence, 2)
-        })
+        }))
 
     except Exception as e:
 
         print("ERROR:", str(e))
 
-        return jsonify({
+        response = jsonify({
             'error': str(e)
-        }), 500
+        })
+        response.status_code = 500
+        return add_cors_headers(response)
 
 
 if __name__ == '__main__':
