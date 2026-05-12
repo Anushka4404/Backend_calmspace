@@ -6,7 +6,7 @@ from fer import FER
 # from keras.models import load_model
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # LOAD MODEL (no training!)
 # model = load_model('model_file.h5')
