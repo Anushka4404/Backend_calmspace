@@ -1,47 +1,28 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from deepface import DeepFace
 import numpy as np
 import cv2
 import os
-import random
 
 app = Flask(__name__)
-
-# CORS FIX
 CORS(app)
 
-# Load Haar Cascade
-cascade_path = os.path.join(
-    os.path.dirname(__file__),
-    'haarcascade_frontalface_default.xml'
-)
-
-faceDetect = cv2.CascadeClassifier(cascade_path)
-
-# Labels map
 labels_map = {
     "angry": 0,
+    "disgust": 1,
+    "fear": 2,
     "happy": 3,
     "neutral": 4,
-    "sad": 5
+    "sad": 5,
+    "surprise": 6
 }
-
 
 @app.route('/')
 def home():
     return jsonify({
         "message": "ML Service Running!"
     })
-
-
-# Handle OPTIONS request
-@app.route('/predict_emotion', methods=['OPTIONS'])
-def predict_emotion_options():
-    response = jsonify({"status": "ok"})
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Headers", "*")
-    response.headers.add("Access-Control-Allow-Methods", "*")
-    return response
 
 
 @app.route('/predict_emotion', methods=['POST'])
@@ -56,8 +37,6 @@ def predict_emotion():
 
         file = request.files['image']
 
-        print("Received image:", file.filename)
-
         npimg = np.frombuffer(file.read(), np.uint8)
 
         frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
@@ -67,71 +46,19 @@ def predict_emotion():
                 'error': 'Invalid image'
             }), 400
 
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        faces = faceDetect.detectMultiScale(
-            gray,
-            scaleFactor=1.1,
-            minNeighbors=5,
-            minSize=(30, 30)
+        result = DeepFace.analyze(
+            frame,
+            actions=['emotion'],
+            enforce_detection=False
         )
 
-        print("Faces detected:", len(faces))
-
-        if len(faces) == 0:
-            return jsonify({
-                'error': 'No face detected'
-            }), 400
-
-        # SIMPLE LIGHTWEIGHT EMOTION LOGIC
-        # based on brightness
-
-        # brightness = np.mean(gray)
-
-        # if brightness > 150:
-        #     emotion = "happy"
-
-        # elif brightness > 110:
-        #     emotion = "neutral"
-
-        # elif brightness > 80:
-        #     emotion = "sad"
-
-        # else:
-        #     emotion = "angry"
-        # Better lightweight emotion logic
-
-        x, y, w, h = faces[0]
-
-        face = gray[y:y+h, x:x+w]
-
-        # Calculate brightness and contrast
-        brightness = np.mean(face)
-        contrast = np.std(face)
-
-        print("Brightness:", brightness)
-        print("Contrast:", contrast)
-
-        # Emotion prediction logic
-
-        if contrast > 65 and brightness > 125:
-            emotion = "happy"
-
-        elif contrast < 40 and brightness < 95:
-            emotion = "sad"
-
-        elif contrast > 55 and brightness < 110:
-            emotion = "angry"
-
-        else:
-            emotion = "neutral"
-
-        confidence = round(random.uniform(0.70, 0.95), 2)
+        emotion = result[0]['dominant_emotion']
+        confidence = result[0]['emotion'][emotion] / 100
 
         return jsonify({
-            "mood": labels_map[emotion],
+            "mood": labels_map.get(emotion, 4),
             "moodLabel": emotion.capitalize(),
-            "confidence": confidence
+            "confidence": round(confidence, 2)
         })
 
     except Exception as e:
@@ -147,10 +74,7 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
 
-    print(f"🚀 ML Server running on port {port}")
-
     app.run(
         host='0.0.0.0',
-        port=port,
-        debug=False
+        port=port
     )
