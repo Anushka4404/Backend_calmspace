@@ -12,7 +12,10 @@ CORS(app)
 # model = load_model('model_file.h5')
 detector = FER(mtcnn=False)
 
-faceDetect = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+import os
+
+cascade_path = os.path.join(os.path.dirname(__file__), 'haarcascade_frontalface_default.xml')
+faceDetect = cv2.CascadeClassifier(cascade_path)
 
 labels_dict = {
     0: 'Angry',
@@ -24,7 +27,12 @@ labels_dict = {
     6: 'Surprise'
 }
 
+@app.route('/')
+def home():
+    return "ML Service Running!"
+
 @app.route('/predict_emotion', methods=['POST'])
+
 def predict_emotion():
     try:
         if 'image' not in request.files:
@@ -100,4 +108,3 @@ if __name__ == '__main__':
     print("🚀 ML Server running on 5000")
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-    # app.run(host='0.0.0.0', port=5000, debug=True)
