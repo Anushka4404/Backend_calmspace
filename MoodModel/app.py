@@ -3,11 +3,10 @@ from flask_cors import CORS
 import numpy as np
 import cv2
 from fer import FER
-# from keras.models import load_model
 
 app = Flask(__name__)
 
-# CORS FIX - Allow specific origins for production
+# CORS FIX
 CORS(app, resources={
     r"/*": {
         "origins": [
@@ -19,23 +18,17 @@ CORS(app, resources={
         ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
-        "expose_headers": ["Access-Control-Allow-Origin"],
         "supports_credentials": True
     }
 })
 
 def add_cors_headers(response):
-    """Add CORS headers to response for Render compatibility"""
-    response.headers['Access-Control-Allow-Origin'] = 'https://frontend-calmspace.onrender.com'
+    response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-    response.headers['Access-Control-Allow-Credentials'] = 'true'
     return response
 
-# LOAD MODEL (no training!)
-# model = load_model('model_file.h5')
-
-# IMPORTANT: mtcnn=False for Render free tier memory
+# IMPORTANT: mtcnn=False for Render free tier
 detector = FER(mtcnn=False)
 
 import os
@@ -65,9 +58,14 @@ def home():
 
 @app.route('/predict_emotion', methods=['OPTIONS'])
 def predict_emotion_options():
-    """Handle preflight OPTIONS request for CORS"""
     response = jsonify({})
     return add_cors_headers(response)
+
+
+@app.route('/predict_emotion', methods=['POST'])
+def predict_emotion():
+
+    try:
 
         if 'image' not in request.files:
             response = jsonify({'error': 'No image file'})
@@ -170,7 +168,9 @@ def predict_emotion_options():
         response = jsonify({
             'error': str(e)
         })
+
         response.status_code = 500
+
         return add_cors_headers(response)
 
 
