@@ -86,19 +86,45 @@ def predict_emotion():
         # SIMPLE LIGHTWEIGHT EMOTION LOGIC
         # based on brightness
 
-        brightness = np.mean(gray)
+        # brightness = np.mean(gray)
 
-        if brightness > 150:
+        # if brightness > 150:
+        #     emotion = "happy"
+
+        # elif brightness > 110:
+        #     emotion = "neutral"
+
+        # elif brightness > 80:
+        #     emotion = "sad"
+
+        # else:
+        #     emotion = "angry"
+        # Better lightweight emotion logic
+
+        x, y, w, h = faces[0]
+
+        face = gray[y:y+h, x:x+w]
+
+        # Calculate brightness and contrast
+        brightness = np.mean(face)
+        contrast = np.std(face)
+
+        print("Brightness:", brightness)
+        print("Contrast:", contrast)
+
+        # Emotion prediction logic
+
+        if contrast > 65 and brightness > 125:
             emotion = "happy"
 
-        elif brightness > 110:
-            emotion = "neutral"
-
-        elif brightness > 80:
+        elif contrast < 40 and brightness < 95:
             emotion = "sad"
 
-        else:
+        elif contrast > 55 and brightness < 110:
             emotion = "angry"
+
+        else:
+            emotion = "neutral"
 
         confidence = round(random.uniform(0.70, 0.95), 2)
 
