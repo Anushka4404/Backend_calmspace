@@ -65,16 +65,20 @@ def predict_emotion():
             )  # More sensitive detection
             print("Haar cascade faces:", faces)
 
-            if faces is None or len(faces) == 0:
+            if len(faces) == 0:
                 return jsonify({'error': 'No face detected'}), 400
 
             x, y, w, h = faces[0]
+
             face_img = frame[y:y+h, x:x+w]
+
             result = detector.detect_emotions(face_img)
-            print("FER result on cropped face:", result)
+
+            print("FER cropped result:", result)
 
             if not result:
-                return jsonify({'error': 'No face detected'}), 400
+                return jsonify({'error': 'Emotion not detected'}), 400
+            
 
         emotions = result[0]["emotions"]
         # 🔥 PUT YOUR LOGIC HERE
