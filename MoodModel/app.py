@@ -6,15 +6,23 @@ from fer import FER
 # from keras.models import load_model
 
 app = Flask(__name__)
+
+# CORS FIX
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # LOAD MODEL (no training!)
 # model = load_model('model_file.h5')
+
+# IMPORTANT: mtcnn=False for Render free tier memory
 detector = FER(mtcnn=False)
 
 import os
 
-cascade_path = os.path.join(os.path.dirname(__file__), 'haarcascade_frontalface_default.xml')
+cascade_path = os.path.join(
+    os.path.dirname(__file__),
+    'haarcascade_frontalface_default.xml'
+)
+
 faceDetect = cv2.CascadeClassifier(cascade_path)
 
 labels_dict = {
@@ -31,38 +39,47 @@ labels_dict = {
 def home():
     return "ML Service Running!"
 
-@app.route('/predict_emotion', methods=['POST'])
 
+@app.route('/predict_emotion', methods=['POST'])
 def predict_emotion():
+
     try:
+
         if 'image' not in request.files:
             return jsonify({'error': 'No image file'}), 400
 
         file = request.files['image']
-        print('Received image file:', file.filename, file.content_type)
+
+        print('Received image file:', file.filename)
+
         npimg = np.frombuffer(file.read(), np.uint8)
+
         frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
-        cv2.imwrite("debug.jpg", frame)
 
         if frame is None:
-            return jsonify({'error': 'Invalid image or unsupported format'}), 400
+            return jsonify({'error': 'Invalid image'}), 400
 
         if frame.shape[0] == 0 or frame.shape[1] == 0:
             return jsonify({'error': 'Empty image'}), 400
 
         print("Frame shape:", frame.shape)
+
+        # MAIN FER DETECTION
         result = detector.detect_emotions(frame)
+
         print("Initial FER detection result:", result)
 
+        # FALLBACK FACE DETECTION
         if not result:
-            # Fallback: try Haar cascade if FER missed the face
+
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
             faces = faceDetect.detectMultiScale(
-                gray, 
-                scaleFactor=1.05,
-                minNeighbors=3,
-                minSize=(20, 20)
-            )  # More sensitive detection
+                gray,
+                scaleFactor=1.1,
+                minNeighbors=5
+            )
+
             print("Haar cascade faces:", faces)
 
             if len(faces) == 0:
@@ -78,22 +95,24 @@ def predict_emotion():
 
             if not result:
                 return jsonify({'error': 'Emotion not detected'}), 400
-            
 
         emotions = result[0]["emotions"]
-        # 🔥 PUT YOUR LOGIC HERE
+
+        # CUSTOM LOGIC
         if emotions["sad"] > 0.15:
             emotion = "sad"
+
         elif emotions["angry"] > 0.15:
             emotion = "angry"
+
         elif emotions["fear"] > 0.4:
-            emotion = "sad"   # treat fear as sadness (VERY IMPORTANT)
+            emotion = "sad"
+
         else:
             emotion = max(emotions, key=emotions.get)
-        
-        # confidence = emotions[emotion]
+
         confidence = emotions.get(emotion, 0)
-        # map emotion → number (IMPORTANT)
+
         labels_map = {
             "angry": 0,
             "disgust": 1,
@@ -103,18 +122,24 @@ def predict_emotion():
             "sad": 5,
             "surprise": 6
         }
+
         return jsonify({
-            "mood": labels_map[emotion],   # ✅ REQUIRED
+            "mood": labels_map[emotion],
             "moodLabel": emotion.capitalize(),
             "confidence": round(confidence, 2)
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+
+        print("ERROR:", str(e))
+
+        return jsonify({
+            'error': str(e)
+        }), 500
 
 
 if __name__ == '__main__':
-    import os
+
     port = int(os.environ.get("PORT", 10000))
 
     print(f"🚀 ML Server running on port {port}")
