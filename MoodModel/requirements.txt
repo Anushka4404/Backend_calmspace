@@ -2,10 +2,6 @@ flask==2.3.2
 flask-cors==4.0.0
 numpy==1.23.5
 opencv-python-headless==4.8.1.78
-tensorflow-cpu==2.12.0
-keras==2.12.0
-fer==22.4.0
-mtcnn==0.1.1
 gunicorn==21.2.0
 setuptools==68.2.2
 wheel==0.41.2
