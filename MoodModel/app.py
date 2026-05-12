@@ -42,6 +42,7 @@ def predict_emotion():
         print('Received image file:', file.filename, file.content_type)
         npimg = np.frombuffer(file.read(), np.uint8)
         frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+        cv2.imwrite("debug.jpg", frame)
 
         if frame is None:
             return jsonify({'error': 'Invalid image or unsupported format'}), 400
@@ -56,7 +57,12 @@ def predict_emotion():
         if not result:
             # Fallback: try Haar cascade if FER missed the face
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            faces = faceDetect.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=1, minSize=(30, 30))  # More sensitive detection
+            faces = faceDetect.detectMultiScale(
+                gray, 
+                scaleFactor=1.05,
+                minNeighbors=3,
+                minSize=(20, 20)
+            )  # More sensitive detection
             print("Haar cascade faces:", faces)
 
             if faces is None or len(faces) == 0:
